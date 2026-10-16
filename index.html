@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Canton Swap Broker API</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: system-ui, -apple-system, sans-serif; max-width: 760px; margin: 0 auto; padding: 40px 24px; line-height: 1.6; }
+  h1 { font-size: 1.7rem; margin-bottom: 4px; }
+  .sub { opacity: .75; margin-top: 0; }
+  code, pre { background: rgba(127,127,127,.12); border-radius: 6px; }
+  code { padding: 2px 6px; }
+  pre { padding: 14px 16px; overflow-x: auto; font-size: .85rem; }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid rgba(127,127,127,.3); }
+  a { color: #2563eb; }
+  .pill { display: inline-block; font-size: .8rem; padding: 2px 10px; border-radius: 999px; background: rgba(37,99,235,.12); }
+</style>
+</head>
+<body>
+<h1>Canton Swap Broker API</h1>
+<p class="sub"><span class="pill">x402 v2</span> Pay-per-call swap access to the Canton Network, via the OneSwap atomic DvP DEX.</p>
+
+<p>The broker gives any AI agent or application paid access to settlement-accurate quotes, live Canton pool data, and escrow swap creation for wallets that can only make plain Canton transfers. You get a deposit party, fund it with a normal transfer, OneSwap settles atomically and returns the output to the sender. The broker never touches user funds.</p>
+
+<h3>Endpoints &amp; pricing</h3>
+<table>
+  <tr><th>Action</th><th>Price</th><th>What it returns</th></tr>
+  <tr><td><code>quote</code></td><td>$0.02</td><td>Settlement-accurate pool quote (fees, impact, network fee included)</td></tr>
+  <tr><td><code>createSwap</code></td><td>$0.05</td><td>Escrow swap: depositParty, minOut, 1-hour deadline</td></tr>
+  <tr><td><code>markets</code></td><td>$0.02</td><td>All Canton pools, reserves, fees, optional tickers</td></tr>
+  <tr><td><code>tokens</code></td><td>$0.02</td><td>Settleable token registry with issuer Party IDs</td></tr>
+  <tr><td><code>cancel</code></td><td>$0.02</td><td>Cancel a pre-deposit escrow swap</td></tr>
+  <tr><td><code>status</code> / <code>openSwap</code></td><td>free</td><td>Swap lifecycle reads</td></tr>
+  <tr><td><code>info</code></td><td>free</td><td>Machine-readable directory</td></tr>
+</table>
+
+<h3>Example</h3>
+<pre>GET https://solene-fa2010da.base44.app/functions/cantonSwapBroker?action=quote&amp;from=CC&amp;to=HECTO&amp;amount=970
+
+-&gt; 402 Payment Required (PAYMENT-REQUIRED header: base64 x402 v2 PaymentRequired)
+-&gt; sign the EIP-3009 authorization, resend with PAYMENT-SIGNATURE header
+-&gt; 200 { "service": "canton-swap-broker", "paid": "$0.02",
+        "data": { "amountOut": 31268.42, "priceImpactPct": 2.06, ... } }</pre>
+
+<h3>Notes for agents</h3>
+<ul>
+  <li>OneSwap has no multi-hop routing: pairs without a direct pool route via CC as two swaps.</li>
+  <li>Canton assets have no EVM addresses. Verify tokens by issuer Party ID, e.g. HECTO issuer <code>Hecto-Finance-1::12208ee0...070972</code>.</li>
+  <li>Escrow deposits must arrive within 1% of <code>amountIn</code> before the 1-hour deadline; output returns to the funding party.</li>
+</ul>
+
+<p><strong>Machine-readable spec:</strong> <a href="openapi.json">openapi.json</a> (OpenAPI 3.1)</p>
+<p><strong>Live endpoint:</strong> <a href="https://solene-fa2010da.base44.app/functions/cantonSwapBroker?action=info">https://solene-fa2010da.base44.app/functions/cantonSwapBroker</a></p>
+<p style="opacity:.7">Contact: Leo Sanders &middot; Payments: USDC on Base via x402 v2 (x402.org)</p>
+</body>
+</html>
