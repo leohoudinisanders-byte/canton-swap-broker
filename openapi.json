@@ -1,0 +1,226 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Canton Swap Broker API",
+    "version": "1.0.0",
+    "description": "Pay-per-call swap broker for OneSwap, the atomic DvP DEX on the Canton Network. Settlement-accurate quotes and live market data for Canton liquidity pools (CC/HECTO, CC/USDCx, CC/CBTC, CC/EDELx, HECTO/cETH and more), plus escrow-swap creation for wallets that can only make plain Canton transfers: the caller receives a depositParty, funds it with a normal Canton transfer, OneSwap settles atomically and returns the output to the sender. The broker never touches user funds. Pricing per call: quote $0.02, markets $0.02, tokens $0.02, createSwap $0.05, cancel $0.02, status free, openSwap free, info free. Payments: USDC on Base via x402 v2 (https://x402.org). On a 402 response, decode the PAYMENT-REQUIRED header (base64 PaymentRequired), sign, and send the payment in the PAYMENT-SIGNATURE header. Canton assets are identified by issuer Party ID (Canton has no EVM addresses); verify tokens by admin party, e.g. HECTO issuer Hecto-Finance-1::12208ee0...070972.",
+    "contact": { "name": "Leo Sanders" },
+    "license": { "name": "Proprietary" }
+  },
+  "servers": [
+    { "url": "https://solene-fa2010da.base44.app" }
+  ],
+  "paths": {
+    "/functions/cantonSwapBroker": {
+      "get": {
+        "summary": "Canton Swap Broker endpoint",
+        "description": "Single endpoint, action-based routing. Paid actions require an x402 v2 USDC payment (PAYMENT-SIGNATURE header); the 402 challenge is returned in the PAYMENT-REQUIRED header. status and openSwap are free.",
+        "parameters": [
+          {
+            "name": "action",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["quote", "createSwap", "status", "openSwap", "cancel", "markets", "tokens", "info"]
+            },
+            "description": "Broker action (defaults to info). Prices: quote/markets/tokens/cancel $0.02, createSwap $0.05, status/openSwap/info free."
+          },
+          { "name": "from", "in": "query", "required": false, "schema": { "type": "string", "example": "CC" }, "description": "quote: input symbol" },
+          { "name": "to", "in": "query", "required": false, "schema": { "type": "string", "example": "HECTO" }, "description": "quote: output symbol" },
+          { "name": "amount", "in": "query", "required": false, "schema": { "type": "number", "example": 970 }, "description": "quote: input amount in `from` units" },
+          { "name": "userRef", "in": "query", "required": false, "schema": { "type": "string", "example": "user-1042" }, "description": "createSwap/openSwap: caller's own reference. One open (awaiting_deposit) swap per userRef; reuse after settle or cancel." },
+          { "name": "inSymbol", "in": "query", "required": false, "schema": { "type": "string", "example": "CC" }, "description": "createSwap: input symbol the user will deposit" },
+          { "name": "amountIn", "in": "query", "required": false, "schema": { "type": "number", "example": 970 }, "description": "createSwap: deposit amount in inSymbol units" },
+          { "name": "outSymbol", "in": "query", "required": false, "schema": { "type": "string", "example": "HECTO" }, "description": "createSwap: output symbol the user receives (returned to sender)" },
+          { "name": "minOut", "in": "query", "required": false, "schema": { "type": "number" }, "description": "createSwap: minimum acceptable output (either minOut or slippageBps)" },
+          { "name": "slippageBps", "in": "query", "required": false, "schema": { "type": "integer", "example": 300 }, "description": "createSwap: slippage tolerance in basis points, computed against the quote at creation time" },
+          { "name": "poolId", "in": "query", "required": false, "schema": { "type": "string", "example": "rt-u8y4x7" }, "description": "quote/createSwap: pin a specific pool when a pair trades on multiple venues" },
+          { "name": "swapId", "in": "query", "required": false, "schema": { "type": "string", "example": "esc_dd8c421c7f0025d97adbf76f" }, "description": "status/cancel: escrow swap id (esc_...)" },
+          { "name": "tickers", "in": "query", "required": false, "schema": { "type": "string", "enum": ["0", "1"] }, "description": "markets: 1 to include live tickers per pool" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Broker result envelope",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BrokerResponse" },
+                "examples": {
+                  "quote": {
+                    "summary": "Settlement-accurate quote (paid $0.02)",
+                    "value": {
+                      "service": "canton-swap-broker",
+                      "paid": "$0.02",
+                      "settlement_tx": "0xf2b4ec23254a7cb578c487e5ca340b34ab5c8f02e179a3980e4e1f82872b0591",
+                      "data": {
+                        "amountOut": 31268.42,
+                        "priceImpactPct": 2.06,
+                        "networkFeeIn": 13.42,
+                        "swapFeeBps": 30,
+                        "effFeeBps": 30,
+                        "effInput": 956.58,
+                        "inputCredit": 955.87,
+                        "platformFee": 0.72,
+                        "lpFee": 2.15,
+                        "inSym": "CC",
+                        "poolId": "rt-u8y4x7",
+                        "xToY": true,
+                        "from": "CC",
+                        "to": "HECTO",
+                        "amount": 970
+                      }
+                    }
+                  },
+                  "createSwap": {
+                    "summary": "Escrow swap created (paid $0.05)",
+                    "value": {
+                      "service": "canton-swap-broker",
+                      "paid": "$0.05",
+                      "settlement_tx": null,
+                      "data": {
+                        "id": "esc_dd8c421c7f0025d97adbf76f",
+                        "status": "awaiting_deposit",
+                        "poolId": "rt-u8y4x7",
+                        "inSymbol": "CC",
+                        "outSymbol": "HECTO",
+                        "amountIn": 970,
+                        "minOut": 30392.27,
+                        "depositParty": "oneswap-wallet-mvbizw66::122043df1a3b6ae04288cbcd1899434a945a75b849859f20b124e8ba07ebb812a047",
+                        "deadline": "2026-10-16T23:14:58.200Z"
+                      }
+                    }
+                  },
+                  "status": {
+                    "summary": "Swap status (free)",
+                    "value": {
+                      "service": "canton-swap-broker",
+                      "paid": "$0.00",
+                      "settlement_tx": null,
+                      "data": {
+                        "id": "esc_dd8c421c7f0025d97adbf76f",
+                        "status": "awaiting_deposit",
+                        "poolId": "rt-u8y4x7",
+                        "inSymbol": "CC",
+                        "outSymbol": "HECTO",
+                        "amountIn": 970,
+                        "minOut": 30392.27,
+                        "depositParty": "oneswap-wallet-mvbizw66::122043df1a3b6ae04288cbcd1899434a945a75b849859f20b124e8ba07ebb812a047",
+                        "deadline": "2026-10-16T23:14:58.200Z",
+                        "amountOut": null,
+                        "senderParty": null,
+                        "error": null
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required (x402 v2). PaymentRequired JSON is base64-encoded in the PAYMENT-REQUIRED header; send the signed payment in PAYMENT-SIGNATURE. USDC on Base (eip155:8453).",
+            "content": { "application/json": { "schema": { "type": "object" } } }
+          },
+          "400": { "description": "Bad request (invalid payment header or unknown action)" },
+          "502": { "description": "Facilitator unreachable during payment verification" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BrokerResponse": {
+        "type": "object",
+        "properties": {
+          "service": { "type": "string", "const": "canton-swap-broker" },
+          "paid": { "type": "string", "description": "Price charged for this call ($0.00 for free actions)" },
+          "settlement_tx": { "type": ["string", "null"], "description": "Base tx hash of the x402 settlement, when the call was paid" },
+          "data": {
+            "oneOf": [
+              { "$ref": "#/components/schemas/QuoteData" },
+              { "$ref": "#/components/schemas/EscrowSwap" },
+              { "$ref": "#/components/schemas/MarketsData" },
+              { "$ref": "#/components/schemas/TokensData" }
+            ]
+          }
+        }
+      },
+      "QuoteData": {
+        "type": "object",
+        "description": "Settlement-accurate quote: exactly what OneSwap would credit for this input, including fees and price impact.",
+        "properties": {
+          "amountOut": { "type": "number", "description": "Output units returned to the sender" },
+          "priceImpactPct": { "type": "number" },
+          "networkFeeIn": { "type": "number", "description": "Canton network fee charged in input units" },
+          "swapFeeBps": { "type": "integer" },
+          "effFeeBps": { "type": "integer" },
+          "effInput": { "type": "number", "description": "Input after network fee" },
+          "inputCredit": { "type": "number", "description": "Input credited to the pool" },
+          "platformFee": { "type": "number" },
+          "lpFee": { "type": "number" },
+          "inSym": { "type": "string" },
+          "poolId": { "type": "string" },
+          "xToY": { "type": "boolean" },
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "amount": { "type": "number" }
+        }
+      },
+      "EscrowSwap": {
+        "type": "object",
+        "description": "Escrow swap record. Lifecycle: awaiting_deposit -> completed | cancelled | expired. Deposit within 1% of amountIn must reach depositParty before deadline (1 hour); output returns to the funding party.",
+        "properties": {
+          "id": { "type": "string", "pattern": "^esc_[0-9a-f]+$" },
+          "status": { "type": "string", "enum": ["awaiting_deposit", "completed", "cancelled", "expired"] },
+          "poolId": { "type": "string" },
+          "inSymbol": { "type": "string" },
+          "outSymbol": { "type": "string" },
+          "amountIn": { "type": "number" },
+          "minOut": { "type": "number" },
+          "depositParty": { "type": "string", "description": "Canton Party ID to fund via a plain Canton transfer" },
+          "deadline": { "type": "string", "format": "date-time" },
+          "amountOut": { "type": ["number", "null"], "description": "Filled once the swap settles" },
+          "senderParty": { "type": ["string", "null"], "description": "Funding party once the deposit arrives" },
+          "error": { "type": ["string", "null"] }
+        }
+      },
+      "MarketsData": {
+        "type": "object",
+        "properties": {
+          "pools": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string" },
+                "pair": { "type": "string", "example": "CC/HECTO" },
+                "feeBps": { "type": "integer" },
+                "minTradeUsd": { "type": ["number", "null"] },
+                "swapsEnabled": { "type": "boolean" },
+                "reserveX": { "type": "number" },
+                "reserveY": { "type": "number" }
+              }
+            }
+          }
+        }
+      },
+      "TokensData": {
+        "type": "object",
+        "description": "Settleable token registry from OneSwap, including issuer Party IDs for Canton-native verification.",
+        "properties": {
+          "tokens": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "symbol": { "type": "string" },
+                "admin": { "type": "string", "description": "Issuer Party ID, e.g. Hecto-Finance-1::12208ee0...070972" },
+                "id": { "type": "string" },
+                "registryUrl": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
