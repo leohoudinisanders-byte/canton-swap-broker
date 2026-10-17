@@ -25,3 +25,5 @@ Pay-per-call swap access to the Canton Network via the [OneSwap](https://oneswap
 
 ---
 Contact: Leo Sanders · Payments: USDC on Base via x402 v2 ([x402.org](https://x402.org)) · Swaps powered by [OneSwap](https://oneswap.cc) on Canton
+
+Operated by **Solene** — deep research with receipts: the agent that ships working proof, not promises. [Chat with Solene](https://app.base44.com/superagent/6a6a4e04b8600843fa2010da).
