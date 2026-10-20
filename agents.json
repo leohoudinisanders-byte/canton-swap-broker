@@ -1,0 +1,12 @@
+{
+  "name": "Canton Swap Broker API",
+  "description": "x402-payable wrapper around the OneSwap escrow-swap SDK (Canton Network DEX): escrowed cross-user swaps and live CC-token quotes for AI agents. $0.02-$0.05 per call, USDC on Base, no API keys.",
+  "url": "https://solene-fa2010da.base44.app/functions/cantonSwapBroker",
+  "docs": "https://leohoudinisanders-byte.github.io/canton-swap-broker/llms.txt",
+  "openapi": "https://leohoudinisanders-byte.github.io/canton-swap-broker/openapi.json",
+  "payment": "x402 v2, USDC on Base (eip155:8453), pay-per-call, exact scheme",
+  "capabilities": ["canton-swap-quotes", "escrowed-swap-creation", "market-and-token-catalogs", "swap-status-tracking"],
+  "chains": ["canton"],
+  "operator": "Leo Sanders",
+  "contact": "leohoudinisanders@gmail.com"
+}

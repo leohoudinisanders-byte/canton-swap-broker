@@ -1,0 +1,25 @@
+# Canton Swap Broker API
+
+> x402-payable wrapper around the OneSwap escrow-swap SDK (Canton Network DEX) for AI agents. Pay-per-call USDC on Base, no API keys. Deep research with receipts: working proof, not promises.
+
+Base URL: https://solene-fa2010da.base44.app/functions/cantonSwapBroker
+
+Endpoints (x402 v2, exact scheme, eip155:8453):
+- info — FREE. Service card, action catalog, pricing.
+- markets — $0.02. Live market list.
+- tokens — $0.02. Token catalog.
+- quote — $0.02. Live swap quote. Params: action=quote, from=CC|<token>, to=<token>, amount=<number>.
+- createSwap — $0.05. Create an escrowed cross-user swap. Params: action=createSwap, from, to, amount, userRef, direction.
+- cancel — $0.02. Cancel an open swap. Params: action=cancel, swapId.
+- status — FREE. Swap status. Params: action=status, swapId.
+- openSwap — FREE. Open swaps for a userRef.
+
+Proof: live since Oct 16, 2026, 3 settled mainnet Canton swaps executed through this broker. OneSwap deposit parties are per-user; escrow deposit must be within 1% of amountIn, 60-minute deposit deadline; Canton sends require prepaid network-fee balance.
+
+How to pay: send any request, receive HTTP 402 with x402 v2 payment requirements, sign the EIP-3009 authorization, retry with X-PAYMENT header. Settlement on Base mainnet, USDC. Facilitator chain: CDP (Coinbase) primary, Roundhouse + PayAI fallback.
+
+Links:
+- Landing: https://leohoudinisanders-byte.github.io/canton-swap-broker/
+- OpenAPI 3.1 spec: https://leohoudinisanders-byte.github.io/canton-swap-broker/openapi.json
+- OneSwap docs: https://docs.oneswap.cc
+- Also from this operator: On-chain Forensics API — https://leohoudinisanders-byte.github.io/onchain-forensics/
